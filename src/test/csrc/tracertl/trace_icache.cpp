@@ -55,19 +55,15 @@ TraceICache::TraceICache(const char* tracept_file) {
     }
 
     printf("[TraceRTL] decompress trace page table file.\n");
-    size_t sizeAfterDC = traceDecompressSizeZSTD(fileBuffer, fileSize);
-    if ((sizeAfterDC % sizeof(TracePageEntry)) != 0) {
-      std::cerr << "TracePT file decompress result wrong. sizeAfterDC cannot be divided exactly\n" << std::endl;
+    size_t decompressCapacity = traceDecompressSizeZSTD(fileBuffer, fileSize);
+    char *decompressBuffer = new char[decompressCapacity];
+    uint64_t decompressedSize = traceDecompressZSTD(decompressBuffer, decompressCapacity, fileBuffer, fileSize);
+    if ((decompressedSize % sizeof(TracePageEntry)) != 0) {
+      std::cerr << "TracePT file decompress result is not entry-aligned\n" << std::endl;
       exit(1);
     }
-
-    uint64_t tracePtNum = sizeAfterDC / sizeof(TracePageEntry);
-    TracePageEntry *traceDecompressBuffer = new TracePageEntry[tracePtNum];
-    uint64_t decompressedSize = traceDecompressZSTD((char *)traceDecompressBuffer, sizeAfterDC, fileBuffer, fileSize);
-    if (decompressedSize != sizeAfterDC) {
-      std::cerr << "TracePT file decompress result wrong. decompressedSize != sizeAfterDC\n" << std::endl;
-      exit(1);
-    }
+    uint64_t tracePtNum = decompressedSize / sizeof(TracePageEntry);
+    TracePageEntry *traceDecompressBuffer = reinterpret_cast<TracePageEntry *>(decompressBuffer);
 
     satp = traceDecompressBuffer[0].pte;
     satp_use_tracept = true; // use tracept file to set satp
@@ -75,6 +71,8 @@ TraceICache::TraceICache(const char* tracept_file) {
       TracePageEntry entry = traceDecompressBuffer[i];
       dynamic_page_table.setPte(entry.paddr, entry.pte, (uint8_t )entry.level);
     }
+    delete[] decompressBuffer;
+    delete[] fileBuffer;
   }
 }
 

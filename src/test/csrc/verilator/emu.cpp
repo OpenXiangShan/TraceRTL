@@ -433,6 +433,11 @@ int Emulator::tick() {
   }
 
   tracertl_prepare_read();
+  if (tracertl_over()) {
+    tracertl_success_dump();
+    trapCode = STATE_TRACE_OVER;
+    return trapCode;
+  }
   tracertl_prepare_fastsim_memaddr();
   single_cycle();
 

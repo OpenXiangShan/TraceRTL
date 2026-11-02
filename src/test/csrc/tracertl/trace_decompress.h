@@ -15,9 +15,11 @@
 ***************************************************************************************/
 #ifndef __TRACE_DECOMPRESS_H__
 #include <stdint.h>
+#define ZSTD_STATIC_LINKING_ONLY
 #include <zstd.h>
 
-// return decompress size(not inst num)
+// Return the exact decompressed size when the frame records it, otherwise a
+// safe upper bound suitable for allocating the destination buffer.
 uint64_t traceDecompressSizeZSTD(const char *src, uint64_t src_len);
 uint64_t traceDecompressZSTD(char *dst, uint64_t dst_len, const char *src, uint64_t src_len);
 
