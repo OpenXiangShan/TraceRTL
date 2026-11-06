@@ -17,13 +17,24 @@
 #include "trace_decompress.h"
 
 size_t traceDecompressSizeZSTD(const char *src, uint64_t src_len) {
-  size_t const sizeAfterDC = ZSTD_getFrameContentSize(src, src_len);
-  if (sizeAfterDC == ZSTD_CONTENTSIZE_ERROR || sizeAfterDC == ZSTD_CONTENTSIZE_UNKNOWN) {
-    std::cerr << "Decompress Error. Wrong SizeAfterDC " << sizeAfterDC << std::endl;
+  unsigned long long const frameSize = ZSTD_getFrameContentSize(src, src_len);
+  if (frameSize == ZSTD_CONTENTSIZE_ERROR) {
+    std::cerr << "Decompress Error. Invalid zstd frame" << std::endl;
     exit(1);
-    return sizeAfterDC;
+    return 0;
   }
-  return sizeAfterDC;
+  if (frameSize != ZSTD_CONTENTSIZE_UNKNOWN) {
+    return frameSize;
+  }
+
+  unsigned long long const bound = ZSTD_decompressBound(src, src_len);
+  if (ZSTD_isError(bound) || bound == 0 || bound > SIZE_MAX) {
+    std::cerr << "Decompress Error. Cannot determine destination capacity: "
+              << ZSTD_getErrorName(bound) << std::endl;
+    exit(1);
+    return 0;
+  }
+  return bound;
 }
 
 uint64_t traceDecompressZSTD(char *dst, uint64_t dst_len, const char *src, uint64_t src_len) {

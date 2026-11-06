@@ -60,7 +60,7 @@ extern "C" void trace_read_one_instr(
   uint8_t *exception, uint8_t *fast_simulation,
   uint64_t *instID,
   uint8_t idx);
-extern "C" void trace_redirect(uint64_t inst_id);
+extern "C" void trace_redirect(uint64_t inst_id, uint8_t preserve_drive_before);
 extern "C" void trace_collect_commit(uint64_t pc, uint32_t instr, uint8_t instNum, uint8_t idx);
 extern "C" void trace_collect_drive(uint64_t pc, uint32_t instr, uint8_t idx);
 

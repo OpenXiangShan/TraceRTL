@@ -163,9 +163,9 @@ extern "C" void trace_read_one_instr(
   METHOD_TRACE();
 }
 
-extern "C" void trace_redirect(uint64_t inst_id) {
+extern "C" void trace_redirect(uint64_t inst_id, uint8_t preserve_drive_before) {
   METHOD_TRACE();
-  trace_reader->redirect(inst_id);
+  trace_reader->redirect(inst_id, preserve_drive_before != 0);
 }
 
 extern "C" void trace_collect_commit(uint64_t pc, uint32_t instr, uint8_t instNum, uint8_t idx) {

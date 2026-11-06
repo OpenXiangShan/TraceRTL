@@ -21,7 +21,7 @@
 #include "spikedasm.h"
 #include "trace_common.h"
 
-#define TraceFetchWidth 8
+#define TraceFetchWidth 32
 
 #define PADDRBITS 36
 #define VADDRBITS 39
@@ -184,7 +184,7 @@ struct Instruction : TraceInstruction {
 };
 
 struct ManyInstruction_t {
-  Instruction insts[TraceFetchWidth]; // 16 is traceFetchWidth
+  Instruction insts[TraceFetchWidth];
 };
 
 struct Control {

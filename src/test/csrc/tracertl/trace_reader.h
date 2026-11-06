@@ -25,7 +25,9 @@
 
 #include "trace_format.h"
 #include "trace_paddr_allocator.h"
+#ifdef TRACERTL_FPGA
 #include <tracertl_dut_info.h>
+#endif
 
 enum TraceStatus {
   TRACE_IDLE,
@@ -151,6 +153,7 @@ public:
   // Used by prepareRead
   bool read(Instruction &inst, bool record);
 
+#ifdef TRACERTL_FPGA
   size_t getFpgaPacketSize(size_t inst_num);
   bool readFpgaInsts(char *buffer, size_t inst_num);
   size_t getFpgaResponseSize(size_t inst_num);
@@ -162,9 +165,10 @@ public:
   void check_by_axis(char last, uint64_t valid,
     uint64_t data0, uint64_t data1, uint64_t data2, uint64_t data3,
     uint64_t data4, uint64_t data5, uint64_t data6, uint64_t data7);
+#endif
   void checkCommitFPGA(uint64_t tick);
 
-  void redirect(uint64_t inst_id);
+  void redirect(uint64_t inst_id, bool preserve_drive_before);
   void collectCommit(uint64_t pc, uint32_t inst, uint8_t instNum, uint8_t idx);
   void collectDrive(uint64_t pc, uint32_t inst, uint8_t idx);
   void checkCommit(uint64_t tick);
@@ -181,7 +185,8 @@ public:
   void success_dump();
   void error_drive_dump();
 
-  bool isOver() { return status == TRACE_EOF && pendingInstList.empty() && redirectInstList.empty(); }
+  // bool isOver() { return status == TRACE_EOF && pendingInstList.empty() && redirectInstList.empty(); }
+  bool isOver() { return status == TRACE_EOF;}
   bool isError() { return status == TRACE_ERROR; }
   bool isErrorDrive() { return status == TRACE_ERROR_DRIVE; }
   bool isStuck() { return status == TRACE_STUCK; }

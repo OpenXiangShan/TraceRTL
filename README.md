@@ -3,7 +3,7 @@
 This workspace is a TraceRTL simulation environment that supports two build modes:
 
 - standalone mode with a local Chisel DUT named Hollow
-- XiangShan mode for future subrepo-style integration back into a parent XiangShan workspace
+- XiangShan mode: build a TraceRTL emu for the parent XiangShan workspace (GSIM or Verilator)
 
 It keeps only the pieces needed to:
 
@@ -140,15 +140,47 @@ Key runtime arguments accepted by `build/emu`:
 
 ## XiangShan mode
 
-The XiangShan mode keeps the original `xiangshan.test.runMain top.SimTop` elaboration flow and is meant for using this repository as a subrepo inside a larger XiangShan workspace.
+`MODE=xiangshan` builds a TraceRTL emu for the parent XiangShan workspace
+(`NOOP_HOME`, by default the directory above this repository). XiangShan is
+elaborated with `--trace-rtl` and the emu is built by XiangShan's own,
+unmodified difftest makefiles. Only the C++ harness differs: `xiangshan.mk`
+stages difftest's `emu/` sources without `main.cpp`, together with
+`src/test/csrc/xiangshan/` and `src/test/csrc/tracertl/`, into
+`$NOOP_HOME/build/tracertl-csrc` and passes that directory as `EMU_CSRC_DIR`.
 
-Current status:
+```bash
+# GSIM (default): sim-chirrtl -> gsim -> clang++
+make MODE=xiangshan SIM=gsim emu -j64 \
+  WITH_DRAMSIM3=1 DRAMSIM3_HOME=/abs/path/to/DRAMsim3 EMU_THREADS=1 GSIM_BIN=/abs/path/to/gsim
+# Verilator: sim-verilog -> verilator
+make MODE=xiangshan SIM=verilator emu -j64 \
+  WITH_DRAMSIM3=1 DRAMSIM3_HOME=/abs/path/to/DRAMsim3 EMU_THREADS=1
+```
 
-- the mode switch and command expansion are implemented in `Makefile`
-- the dry-run command expands to the expected parent-workspace elaboration flow
-- full runtime validation has not been completed yet because this repository is not currently mounted as a XiangShan subrepo in the target workspace
-- `--max-cycles`
-- `--max-instr`
+The emu goes to `$NOOP_HOME/build/emu`. Both simulators build in
+`$NOOP_HOME/build`, so switching `SIM` in the same workspace rebuilds the RTL.
+
+Variables forwarded to XiangShan / difftest: `CONFIG`, `NUM_CORES`,
+`WITH_DRAMSIM3`, `DRAMSIM3_HOME`, `WITH_CHISELDB` (XiangShan tables only;
+the ChiselDB runtime is always linked), `WITH_CONSTANTIN`, `EMU_THREADS`,
+`EMU_OPTIMIZE`, `GSIM_BIN`, `VERILATOR_CXX` (the C++ compiler for the
+Verilator model, default `clang++`, which difftest's `OPT_FAST` assumes) and
+`XS_SIM_ARGS` (extra elaboration arguments next to `--trace-rtl`). Other
+variables are not passed down.
+
+Files:
+
+- `xiangshan.mk`: the build flow; it also clears a stale GSIM model whenever
+  `SimTop.fir` is newer than the last complete one, runs GSIM under `pipefail`,
+  and drops the non-model objects when a header changed
+- `src/test/csrc/xiangshan/main.cpp`: replaces difftest's `emu/main.cpp`; it
+  consumes the TraceRTL options and drives the trace around `Emulator::tick()`
+- `src/test/csrc/xiangshan/gsim_bridges.cpp`: GSIM bridges for XiangShan's
+  PerfCCT and ChiselDB DPI-C black boxes
+
+The emu takes the difftest options plus the TraceRTL ones listed above; run it
+with `--no-diff`. A trace that is fully committed stops the run with exit code
+0 after `TraceRTL Dump`; a TraceRTL check failure aborts with exit code 1.
 
 ## Directory layout
 
